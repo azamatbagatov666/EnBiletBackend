@@ -1,16 +1,20 @@
 ﻿using System.Data.SqlClient;
 using System.Data;
+using Microsoft.Extensions.Configuration;
 
 namespace EnBiletBackend.Connection
 {
     public class DapperContext
     {
         private readonly string _connectionString;
-        public DapperContext()
-        {
 
-            _connectionString = "Data Source=Marty;Initial Catalog=cocukakli;Integrated Security=True;Pooling=false;";
+
+
+        public DapperContext(IConfiguration configuration)
+        {
+            _connectionString = configuration.GetConnectionString("DefaultConnection");
         }
+
         public IDbConnection CreateConnection()
             => new SqlConnection(_connectionString);
     }
