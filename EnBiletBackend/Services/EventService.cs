@@ -111,7 +111,7 @@ namespace EnBiletBackend.Services
                 throw new ArgumentException("Venue name cannot be empty");
 
             var query = @"UPDATE VENUES
-                  SET venueName = @venueName, city = @city, address = @address
+                  SET venueName = @venueName, city = @city, address = @address, updated_at = SYSUTCDATETIME()
                   WHERE venueID = @venueID";
 
             var rows = _connection.Execute(query, data);
@@ -127,8 +127,8 @@ namespace EnBiletBackend.Services
 
         public bool AddEvent(ADDEVENTS data)
         {
-            var query = @"INSERT INTO EVENTS (venueID, showID, date)
-                  VALUES (@venueID, @showID, @date)";
+            var query = @"INSERT INTO EVENTS (venueID, showID, date, imageKey, imageThumbKey)
+                  VALUES (@venueID, @showID, @date, @imageKey, @imageThumbKey)";
 
             try
             {
@@ -155,6 +155,8 @@ SELECT
     e.eventID,
     e.showID,
     e.venueID,
+    e.imageKey,
+    e.imageThumbKey,
     s.showName,
     FORMAT(e.[DATE], 'dd-MM-yyyy HH:mm') AS [Date], 
     v.[city], 
@@ -181,6 +183,8 @@ GROUP BY
     e.eventID,
     e.showID,
     e.venueID,
+    e.imageKey,
+    e.imageThumbKey,
     s.showName,
     e.[DATE],
     v.[city],
@@ -199,8 +203,10 @@ GROUP BY
             var query = @"
   SELECT 
     e.eventID,
-e.showID,
-e.venueID,
+    e.showID,
+    e.venueID,
+    e.imageKey,
+    e.imageThumbKey,
     s.showName,
     FORMAT(e.[DATE], 'dd-MM-yyyy HH:mm') AS Date, 
     v.[city], 
@@ -238,7 +244,7 @@ INNER JOIN [dbo].[SHOWS] s
 
 
             var query = @"UPDATE EVENTS
-                  SET venueID = @venueID, showID = @showID, date = @date, ticketSale = @ticketSale, isPublic = @isPublic
+                  SET venueID = @venueID, showID = @showID, date = @date, ticketSale = @ticketSale, isPublic = @isPublic, imageKey = @imageKey, imageThumbKey = @imageThumbKey, updated_at = SYSUTCDATETIME()
                   WHERE eventID = @eventID";
 
             var rows = _connection.Execute(query, data);
@@ -264,7 +270,7 @@ INNER JOIN [dbo].[SHOWS] s
 
             var query = @"
 
-                    SELECT showID, showName, description, imageKey, imageThumbKey from SHOWS ORDER BY createdAt DESC
+                    SELECT showID, showName, description, imageKey, imageThumbKey from SHOWS ORDER BY created_at DESC
 
                     ";
 
@@ -298,12 +304,12 @@ INNER JOIN [dbo].[SHOWS] s
                 throw new ArgumentException("Show name cannot be empty");
 
             var query = @"UPDATE SHOWS
-                  SET showName = @showName, description = @description, imageKey = @imageKey, imageThumbKey = @imageThumbKey
+                  SET showName = @showName, description = @description, imageKey = @imageKey, imageThumbKey = @imageThumbKey, updated_at = SYSUTCDATETIME()
                   WHERE showID = @showID";
 
-            
 
-         
+
+
 
 
             try
@@ -385,7 +391,8 @@ INNER JOIN [dbo].[VENUES] v
         UPDATE SEAT_MAPS
         SET mapName = @mapName,
             layoutJS = @layoutJS,
-            maxCapacity = @maxCapacity
+            maxCapacity = @maxCapacity,
+updated_at = SYSUTCDATETIME()
         WHERE mapID = @mapID";
 
             var rows = _connection.Execute(query, data);
@@ -416,18 +423,18 @@ INNER JOIN [dbo].[VENUES] v
     WHERE eventID = @eventID
 ", new { request.eventID }, tx);
 
-            if (ticketSaleOn)
-        
-            throw new InvalidOperationException("Bilet satışı açıkken koltuk düzeni değiştirilemez.");
+                if (ticketSaleOn)
+
+                    throw new InvalidOperationException("Bilet satışı açıkken koltuk düzeni değiştirilemez.");
 
 
-            var currentMapID = await conn.ExecuteScalarAsync<int?>(
-    "SELECT mapID FROM EVENTS WHERE eventID = @eventID",
-    new { request.eventID },
-    tx
-);
+                var currentMapID = await conn.ExecuteScalarAsync<int?>(
+        "SELECT mapID FROM EVENTS WHERE eventID = @eventID",
+        new { request.eventID },
+        tx
+    );
 
-         
+
                 // 1. block map change if sold seats exist AND map changes
                 if (currentMapID == null || request.mapID != currentMapID)
                 {
@@ -451,7 +458,7 @@ INNER JOIN [dbo].[VENUES] v
                     // 3. update event map
                     await conn.ExecuteAsync(@"
                 UPDATE EVENTS
-                SET mapID = @mapID
+                SET mapID = @mapID, updated_at = SYSUTCDATETIME()
                 WHERE eventID = @eventID
             ", new { request.eventID, request.mapID }, tx);
                 }
@@ -480,8 +487,8 @@ BEGIN
 END
 ELSE
 BEGIN
-    INSERT INTO EVENT_SEATS (eventID, cellID, price, status, created_at)
-    VALUES (@eventID, @CellId, @Price, @Status, SYSUTCDATETIME());
+    INSERT INTO EVENT_SEATS (eventID, cellID, price, status)
+    VALUES (@eventID, @CellId, @Price, @Status);
 END
 ";
 

@@ -2,6 +2,7 @@ using Microsoft.OpenApi.Models;
 using EnBiletBackend.Connection;
 using EnBiletBackend.Middlewares;
 using EnBiletBackend.Services;
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -45,6 +46,26 @@ builder.Services.AddCors(options =>
         builder => builder.WithOrigins("http://localhost:3000")
         .AllowAnyMethod()
         .AllowAnyHeader());
+});
+
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var errors = context.ModelState
+            .Where(x => x.Value?.Errors.Count > 0)
+            .Select(x => new
+            {
+                field = x.Key,
+                messages = x.Value!.Errors.Select(e => e.ErrorMessage)
+            });
+
+        return new BadRequestObjectResult(new
+        {
+            message = "Doðrulama Hatasý",
+            errors
+        });
+    };
 });
 
 var app = builder.Build();

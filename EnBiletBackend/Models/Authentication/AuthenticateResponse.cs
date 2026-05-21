@@ -1,8 +1,12 @@
-﻿namespace EnBiletBackend.Models.Authentication
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace EnBiletBackend.Models.Authentication
 {
     public class AuthenticateResponse
     {
         public Guid Id { get; set; }
+        [MaxLength(128)]
+
         public string Username { get; set; }
         public string AccessToken { get; set; }
         public string RefreshToken { get; set; }

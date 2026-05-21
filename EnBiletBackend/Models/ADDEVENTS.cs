@@ -12,8 +12,11 @@ namespace EnBiletBackend.Models
         public int? venueID { get; set; }
         public int? showID { get; set; }
         public DateTime? date { get; set; }
+        public string? imageKey { get; set; }
+        public string? imageThumbKey { get; set; }
         public bool? isPublic { get; set; }
         public bool? ticketSale { get; set; }
+
 
     }
 }
