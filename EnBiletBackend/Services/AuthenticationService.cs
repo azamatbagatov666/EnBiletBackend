@@ -182,11 +182,11 @@ namespace EnBiletBackend.Services
 
 
         private string GenerateRefreshToken()
-    {
-        return Convert.ToBase64String(
-            RandomNumberGenerator.GetBytes(64)
-        );
-    }
+        {
+            return Convert.ToBase64String(
+                RandomNumberGenerator.GetBytes(64)
+            );
+        }
 
         private void SaveRefreshToken(Guid userId, string token)
         {

@@ -5,6 +5,7 @@ using EnBiletBackend.Attributes;
 using EnBiletBackend.Models;
 using EnBiletBackend.Services;
 using System;
+using Microsoft.Extensions.Logging;
 
 namespace EnBiletBackend.Controllers
 {
@@ -109,12 +110,19 @@ namespace EnBiletBackend.Controllers
         [TheAuthorize]
         public IActionResult AddEvent([FromBody] ADDEVENTS data)
         {
-            var success = _eventService.AddEvent(data);
 
-            if (!success)
+            try
+            {
+                var eventID = _eventService.AddEvent(data);
+                return Created("", new { eventID = eventID });
+            }
+            catch (InvalidOperationException ex)
+            {
                 return Conflict(new { message = "Seçtiğiniz tarihte ve salonda bir etkinlik zaten bulunuyor." });
+            }
 
-            return Created("", new { message = "Event created" });
+
+
         }
 
         [HttpPost("EditEvent")]
@@ -263,10 +271,10 @@ namespace EnBiletBackend.Controllers
 
 
 
-            [HttpPost("saveSeats")]
-            [TheAuthorize]
-            public async Task<IActionResult> SaveSeats([FromBody] SaveEventSeatsRequest request)
-            {
+        [HttpPost("saveSeats")]
+        [TheAuthorize]
+        public async Task<IActionResult> SaveSeats([FromBody] SaveEventSeatsRequest request)
+        {
             if (request.Seats == null || request.Seats.Count == 0)
                 return BadRequest("No seats provided.");
 
@@ -298,5 +306,5 @@ namespace EnBiletBackend.Controllers
     }
 
 
-    
+
 }

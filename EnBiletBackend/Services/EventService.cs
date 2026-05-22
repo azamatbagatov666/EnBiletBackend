@@ -125,21 +125,25 @@ namespace EnBiletBackend.Services
         //--------------------------EVENTS--------------------------
 
 
-        public bool AddEvent(ADDEVENTS data)
+        public int AddEvent(ADDEVENTS data)
         {
-            var query = @"INSERT INTO EVENTS (venueID, showID, date, imageKey, imageThumbKey)
-                  VALUES (@venueID, @showID, @date, @imageKey, @imageThumbKey)";
+            var query = @"INSERT INTO EVENTS (venueID, showID, date)
+                OUTPUT INSERTED.eventID
+                  VALUES (@venueID, @showID, @date)";
 
             try
             {
-                var result = _connection.Execute(query, data);
-                return result > 0;
+                return _connection.ExecuteScalar<int>(query, data);
             }
             catch (SqlException ex) when (ex.Number == 2627 || ex.Number == 2601)
             {
-                // Unique constraint violation
-                return false;
+                throw new InvalidOperationException();
+
             }
+
+
+
+
         }
 
 
@@ -165,10 +169,23 @@ SELECT
     e.[ticketSale], 
     e.[isPublic],
 
+
     CONCAT(
         SUM(CASE WHEN es.status = 'sold' THEN 1 ELSE 0 END),
         '/',
-        SUM(CASE WHEN es.status IN ('sold', 'available') THEN 1 ELSE 0 END)
+        SUM(CASE WHEN es.status IN ('sold', 'available') THEN 1 ELSE 0 END),
+        ' - %',
+        FORMAT(
+            CASE 
+                WHEN NULLIF(SUM(CASE WHEN es.status IN ('sold', 'available') THEN 1 END), 0) IS NULL OR 
+                     SUM(CASE WHEN es.status IN ('sold', 'available') THEN 1 END) = 0
+                THEN 0
+                ELSE
+                    (CAST(SUM(CASE WHEN es.status = 'sold' THEN 1 ELSE 0 END) AS FLOAT) / 
+                     CAST(SUM(CASE WHEN es.status IN ('sold', 'available') THEN 1 END) AS FLOAT)) * 100
+            END, '##0.00'
+        ) 
+        
     ) AS soldTickets
 
 FROM [dbo].[EVENTS] e
@@ -234,24 +251,26 @@ INNER JOIN [dbo].[SHOWS] s
         {
 
             var seatCount = _connection.ExecuteScalar<int>(@"
-    SELECT COUNT(*)
-    FROM EVENT_SEATS
-    WHERE eventID = @eventID
-", new { data.eventID });
+                                                SELECT COUNT(*)
+                                                FROM EVENT_SEATS
+                                                WHERE eventID = @eventID
+                                            ", new { data.eventID });
 
             if (data.ticketSale == true && seatCount == 0)
                 throw new InvalidOperationException("Bilet fiyatlarını belirlemeden etkinliği satışa açamazsınız.");
 
 
             var query = @"UPDATE EVENTS
-                  SET venueID = @venueID, showID = @showID, date = @date, ticketSale = @ticketSale, isPublic = @isPublic, imageKey = @imageKey, imageThumbKey = @imageThumbKey, updated_at = SYSUTCDATETIME()
+                  SET venueID = @venueID, showID = @showID, date = @date, ticketSale = @ticketSale, isPublic = @isPublic, 
+                  imageKey = @imageKey, imageThumbKey = @imageThumbKey, updated_at = SYSUTCDATETIME()
                   WHERE eventID = @eventID";
 
             var rows = _connection.Execute(query, data);
 
             if (rows == 0)
-                throw new KeyNotFoundException("Event not found");
+                throw new KeyNotFoundException("Etkinlik bulunamadı.");
         }
+
 
 
 
