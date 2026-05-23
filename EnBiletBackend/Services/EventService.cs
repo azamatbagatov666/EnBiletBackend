@@ -265,10 +265,20 @@ INNER JOIN [dbo].[SHOWS] s
                   imageKey = @imageKey, imageThumbKey = @imageThumbKey, updated_at = SYSUTCDATETIME()
                   WHERE eventID = @eventID";
 
-            var rows = _connection.Execute(query, data);
 
-            if (rows == 0)
-                throw new KeyNotFoundException("Etkinlik bulunamadı.");
+
+            try
+            {
+                var rows = _connection.Execute(query, data);
+
+                if (rows == 0)
+                    throw new KeyNotFoundException("Etkinlik bulunamadı.");
+            }
+            catch (SqlException ex) when (ex.Number == 2627 || ex.Number == 2601)
+            {
+                throw new InvalidOperationException();
+
+            }
         }
 
 
@@ -392,33 +402,45 @@ INNER JOIN [dbo].[VENUES] v
         }
 
 
-        public void EditMap(SEATMAPS data)
-        {
-            if (string.IsNullOrWhiteSpace(data.mapName))
-                throw new ArgumentException("Map name cannot be empty");
+       public void EditMap(SEATMAPS data)
+{
+    if (string.IsNullOrWhiteSpace(data.mapName))
+        throw new ArgumentException("Plan adı boş olamaz.");
 
-            var isLocked = _connection.QuerySingleOrDefault<bool>(@"
+    var isLocked = _connection.QuerySingleOrDefault<bool>(@"
         SELECT isLocked
         FROM vw_SeatMapLockStatus
         WHERE mapID = @mapID
     ", new { data.mapID });
 
-            if (isLocked)
-                throw new InvalidOperationException("Bu oturma planı bir etkinliğe atandığı için düzenlenemez.");
+    if (isLocked)
+        throw new InvalidOperationException(
+            "Bu oturma planı bir etkinliğe atandığı için düzenlenemez."
+        );
 
-            var query = @"
-        UPDATE SEAT_MAPS
-        SET mapName = @mapName,
-            layoutJS = @layoutJS,
-            maxCapacity = @maxCapacity,
-updated_at = SYSUTCDATETIME()
-        WHERE mapID = @mapID";
+    try
+    {
+        var query = @"
+            UPDATE SEAT_MAPS
+            SET mapName = @mapName,
+                layoutJS = @layoutJS,
+                maxCapacity = @maxCapacity,
+                updated_at = SYSUTCDATETIME()
+            WHERE mapID = @mapID";
 
-            var rows = _connection.Execute(query, data);
+        var rows = _connection.Execute(query, data);
 
-            if (rows == 0)
-                throw new KeyNotFoundException("Plan bulunamadı.");
-        }
+        if (rows == 0)
+            throw new KeyNotFoundException("Plan bulunamadı.");
+    }
+    catch (SqlException ex) when (ex.Number == 2627 || ex.Number == 2601)
+    {
+        // UNIQUE constraint violated
+        throw new InvalidOperationException(
+            "Bu salonda bu isimde bir oturma planı zaten bulunuyor."
+        );
+    }
+}
 
 
 
@@ -465,7 +487,7 @@ updated_at = SYSUTCDATETIME()
 
                     if (hasSold > 0)
                     {
-                        throw new Exception("Seatmap cannot be changed when seats are sold.");
+                        throw new Exception("Satılmış koltuklar olduğu için oturma planı değiştirilemez.");
                     }
 
                     // 2. delete old seats if map changes
@@ -511,6 +533,8 @@ BEGIN
 END
 ";
 
+
+
                 foreach (var seat in request.Seats)
                 {
                     await conn.ExecuteAsync(sql, new
@@ -523,6 +547,11 @@ END
                 }
 
                 tx.Commit();
+            }
+            catch (SqlException ex) when (ex.Number == 50001)
+            {
+                tx.Rollback();
+                throw new InvalidOperationException("Satılmış koltuklar değiştirilemez.");
             }
             catch
             {

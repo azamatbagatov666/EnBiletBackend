@@ -116,7 +116,7 @@ namespace EnBiletBackend.Controllers
                 var eventID = _eventService.AddEvent(data);
                 return Created("", new { eventID = eventID });
             }
-            catch (InvalidOperationException ex)
+            catch (InvalidOperationException)
             {
                 return Conflict(new { message = "Seçtiğiniz tarihte ve salonda bir etkinlik zaten bulunuyor." });
             }
@@ -138,9 +138,9 @@ namespace EnBiletBackend.Controllers
             {
                 return NotFound(new { message = ex.Message });
             }
-            catch (InvalidOperationException ex)
+            catch (InvalidOperationException)
             {
-                return NotFound(new { message = ex.Message });
+                return Conflict(new { message = "Seçtiğiniz tarihte ve salonda bir etkinlik zaten bulunuyor." });
             }
         }
 
@@ -224,7 +224,7 @@ namespace EnBiletBackend.Controllers
 
 
                 if (!success)
-                    return Conflict(new { message = "Map with a same name already exists" });
+                    return Conflict(new { message = "Bu salonda bu isimde bir oturma planı zaten bulunuyor." });
 
                 return Created("", new { message = "Map created" });
 
@@ -284,6 +284,8 @@ namespace EnBiletBackend.Controllers
                 await _eventService.SaveEventSeatsAsync(request);
                 return Ok(new { success = true });
             }
+
+            
 
 
             catch (InvalidOperationException ex)
