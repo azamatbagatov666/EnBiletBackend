@@ -299,11 +299,26 @@ INNER JOIN [dbo].[SHOWS] s
 
             var query = @"
 
-                    SELECT showID, showName, description, imageKey, imageThumbKey from SHOWS ORDER BY created_at DESC
+                    SELECT showID, showName, description from SHOWS ORDER BY created_at DESC
 
                     ";
 
             return _connection.Query<SHOWS>(query).ToList();
+        }
+
+
+        public SHOWS? GetTheShow(int showID)
+        {
+            var query = @"
+        SELECT *
+        FROM SHOWS
+        WHERE showID = @showID;
+    ";
+
+
+
+            return _connection.QuerySingleOrDefault<SHOWS>(query, new { showID });
+
         }
 
         public int AddShow(SHOWS data)
@@ -312,9 +327,9 @@ INNER JOIN [dbo].[SHOWS] s
                 throw new ArgumentException("Show name cannot be empty");
 
             var query = @"
-        INSERT INTO SHOWS (showName, description, imageKey, imageThumbKey)
+        INSERT INTO SHOWS (showName, description, verKey, horKey)
         OUTPUT INSERTED.showID
-        VALUES (@showName, @description, @imageKey, @imageThumbKey)
+        VALUES (@showName, @description, @verKey, @horKey)
     ";
 
             try
@@ -333,7 +348,7 @@ INNER JOIN [dbo].[SHOWS] s
                 throw new ArgumentException("Show name cannot be empty");
 
             var query = @"UPDATE SHOWS
-                  SET showName = @showName, description = @description, imageKey = @imageKey, imageThumbKey = @imageThumbKey, updated_at = SYSUTCDATETIME()
+                  SET showName = @showName, description = @description, horKey = @horKey, verKey = @verKey, updated_at = SYSUTCDATETIME()
                   WHERE showID = @showID";
 
 

@@ -15,9 +15,9 @@ namespace EnBiletBackend.Models
         public string showName { get; set; } = null!;
         public string? description { get; set; }
 
-        public string? imageKey { get; set; }
+        public string? verKey { get; set; }
+        public string? horKey { get; set; }
 
-        public string? imageThumbKey { get; set; }
         public DateTime created_at { get; set; }
         public DateTime updated_at { get; set; }
     }

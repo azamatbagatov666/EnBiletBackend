@@ -160,6 +160,18 @@ namespace EnBiletBackend.Controllers
             return _eventService.getShows();
         }
 
+        [HttpGet("getTheShow")]
+        [TheAuthorize]
+        public ActionResult<VENUES> GetTheShow([FromQuery] int showID)
+        {
+            var show = _eventService.GetTheShow(showID);
+
+            if (show == null)
+                return NotFound(); // 404
+
+            return Ok(show); // 200
+        }
+
         [HttpPost("AddShow")]
         [TheAuthorize]
         public IActionResult AddShow([FromBody] SHOWS data)
